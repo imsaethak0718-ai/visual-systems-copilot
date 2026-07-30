@@ -1,6 +1,8 @@
+import io
 import time
-from fastapi import APIRouter
 from pathlib import Path
+from typing import List, Optional
+from fastapi import APIRouter, File, UploadFile
 from PIL import Image
 
 from app.core.extractor import extractor
@@ -11,31 +13,62 @@ router = APIRouter(prefix="/analyze", tags=["analyze"])
 
 
 @router.post("")
-async def analyze_data():
+async def analyze_data(files: Optional[List[UploadFile]] = File(None)):
     started = time.perf_counter()
+    
+    if files:
+        try:
+            store.save_files(files)
+        except Exception as e:
+            print(f"[Analyze] Error saving files to store: {e}")
+
     uploaded_files = store.get_latest_files()
-    if not uploaded_files:
+    if not uploaded_files and not files:
         return {"Summary": "No files were uploaded.", "Components": [], "Relationships": [], "Risks": [], "Recommendations": [], "Metadata": {}, "Health": {}}
 
     extracted_chunks = []
     images = []
-    
-    for item in uploaded_files:
-        path = Path(item["path"])
-        suffix = path.suffix.lower()
-        
-        text = extractor.extract_text(item["path"])
-        if text:
-            extracted_chunks.append(f"File: {item['filename']}\n{text}\n")
+    processed_filenames = []
+
+    # Process uploaded files directly from request memory if provided
+    if files:
+        for upload in files:
+            if not upload.filename:
+                continue
+            processed_filenames.append(upload.filename)
+            filename = upload.filename
+            suffix = Path(filename).suffix.lower()
+            content_bytes = await upload.read()
             
-        if suffix in {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}:
-            try:
-                img = Image.open(path).convert('RGB')
-                # Downscale to a max of 1024x1024 to drastically reduce Gemma parsing latency
-                img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
-                images.append(img)
-            except Exception as e:
-                print(f"Error loading image {path}: {e}")
+            if suffix in {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}:
+                try:
+                    img = Image.open(io.BytesIO(content_bytes)).convert('RGB')
+                    img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+                    images.append(img)
+                except Exception as e:
+                    print(f"Error loading uploaded image {filename}: {e}")
+            elif suffix == ".txt":
+                try:
+                    extracted_chunks.append(f"File: {filename}\n{content_bytes.decode('utf-8', errors='ignore')}\n")
+                except Exception:
+                    pass
+    else:
+        for item in uploaded_files:
+            path = Path(item["path"])
+            processed_filenames.append(item["filename"])
+            suffix = path.suffix.lower()
+            
+            text = extractor.extract_text(item["path"])
+            if text:
+                extracted_chunks.append(f"File: {item['filename']}\n{text}\n")
+                
+            if suffix in {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"} and path.exists():
+                try:
+                    img = Image.open(path).convert('RGB')
+                    img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+                    images.append(img)
+                except Exception as e:
+                    print(f"Error loading image {path}: {e}")
 
     combined_text = "\n\n".join(extracted_chunks)
     prompt = f"""
@@ -59,7 +92,7 @@ Files content:
     payload = client.analyze_payload(prompt, images=images)
     payload.setdefault("Metadata", {})
     payload["Metadata"].update({
-        "files_processed": [item["filename"] for item in uploaded_files],
+        "files_processed": processed_filenames or [item["filename"] for item in uploaded_files],
         "processing_time_ms": round((time.perf_counter() - started) * 1000),
         "model": getattr(client, "primary_model", "Gemma"),
     })

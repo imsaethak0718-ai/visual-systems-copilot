@@ -112,7 +112,7 @@ export default function UploadPage() {
     }
 
     setIsAnalyzing(true);
-    setAnalysisPhase("Uploading...");
+    setAnalysisPhase("Analyzing diagrams with Gemma 4...");
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://127.0.0.1:8000" : "/api");
 
@@ -122,19 +122,9 @@ export default function UploadPage() {
         formData.append("files", item.file, item.name);
       });
 
-      const uploadResponse = await fetch(`${apiUrl}/upload`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error("Upload failed");
-      }
-
-      pushToast({ title: "Upload complete", description: "Your assets were accepted by the backend.", type: "success" });
-
       const analyzeResponse = await fetch(`${apiUrl}/analyze`, {
         method: "POST",
+        body: formData,
       });
 
       if (!analyzeResponse.ok) {
@@ -142,22 +132,22 @@ export default function UploadPage() {
       }
 
       const analysis = await analyzeResponse.json();
-      const stages = ["Reading Files", "Extracting Text", "Understanding Diagrams", "Finding Relationships", "Reasoning Across Documents", "Generating Documentation"];
+      const stages = ["Reading Files", "Understanding Diagrams", "Finding Relationships", "Generating Graph"];
       for (const stage of stages) {
         setAnalysisPhase(stage);
-        await new Promise((resolve) => setTimeout(resolve, 360));
+        await new Promise((resolve) => setTimeout(resolve, 250));
       }
       localStorage.setItem("vsc-analysis", JSON.stringify(analysis));
       pushToast({ title: "Unified analysis complete", description: "Gemma has connected the evidence across your entire workspace.", type: "success" });
 
       setAnalysisPhase("Completed");
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       localStorage.removeItem("visual-copilot-chat");
       router.push("/dashboard");
     } catch (error) {
-      console.error(error);
-      pushToast({ title: "Analysis failed", description: "The backend could not finish the request. Please retry in a moment.", type: "error" });
+      console.error("Analysis Error:", error);
+      pushToast({ title: "Analysis failed", description: "Server request encountered an error. Try uploading smaller images or load Demo Workspace.", type: "error" });
       setIsAnalyzing(false);
       setAnalysisPhase("Idle");
     }
