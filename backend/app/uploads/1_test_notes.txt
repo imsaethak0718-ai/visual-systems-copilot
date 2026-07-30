@@ -1,0 +1,1 @@
+The system relies on a Redis cache for sessions. The database is a single PostgreSQL instance with no replicas.

@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+google-genai
+easyocr
+pymupdf
+python-multipart
+pydantic-settings
+pillow
+pytesseract
+PyMuPDF

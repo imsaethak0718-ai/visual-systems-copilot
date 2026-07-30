@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/upload",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/analyze",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/chat",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/documentation",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/insights/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/health",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
