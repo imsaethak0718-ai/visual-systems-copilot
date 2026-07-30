@@ -15,15 +15,23 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".env"))
 
 class GemmaClient:
+    def _fetch_api_key(self) -> str | None:
+        return (
+            os.getenv("GEMINI_API_KEY")
+            or os.getenv("gemma431bit")
+            or os.getenv("GEMMA_API_KEY")
+            or os.getenv("GOOGLE_API_KEY")
+        )
+
     def __init__(self) -> None:
-        self.api_key = os.getenv("GEMINI_API_KEY")
+        self.api_key = self._fetch_api_key()
         self.client = genai.Client(api_key=self.api_key) if self.api_key else None
         self.primary_model = os.getenv("GEMMA_MODEL", "gemma-4-31b-it")
         self.candidate_models = [self.primary_model, "gemini-2.0-flash", "gemini-2.5-flash", "gemini-3.6-flash"]
 
     def _get_client(self):
         # Refresh API key if it was updated in environment dynamically
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = self._fetch_api_key()
         if api_key != self.api_key:
             self.api_key = api_key
             self.client = genai.Client(api_key=self.api_key) if self.api_key else None
