@@ -22,6 +22,13 @@ app.include_router(chat.router)
 app.include_router(documentation.router)
 app.include_router(insights.router)
 
+app.include_router(upload.router, prefix="/api")
+app.include_router(analyze.router, prefix="/api")
+app.include_router(chat.router, prefix="/api")
+app.include_router(documentation.router, prefix="/api")
+app.include_router(insights.router, prefix="/api")
+
 @app.get("/health")
+@app.get("/api/health")
 def health_check():
     return {"status": "ok"}
