@@ -28,6 +28,14 @@ app.include_router(chat.router, prefix="/api")
 app.include_router(documentation.router, prefix="/api")
 app.include_router(insights.router, prefix="/api")
 
+@app.get("/")
+def root():
+    return {
+        "status": "ok",
+        "service": "Visual Systems Copilot API",
+        "endpoints": ["/health", "/upload", "/analyze", "/chat", "/documentation", "/insights"]
+    }
+
 @app.get("/health")
 @app.get("/api/health")
 def health_check():
