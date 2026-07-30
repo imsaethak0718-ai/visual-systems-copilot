@@ -27,7 +27,7 @@ class GemmaClient:
         self.api_key = self._fetch_api_key()
         self.client = genai.Client(api_key=self.api_key) if self.api_key else None
         self.primary_model = os.getenv("GEMMA_MODEL", "gemma-4-31b-it")
-        self.candidate_models = [self.primary_model, "gemini-2.0-flash", "gemini-2.5-flash", "gemini-3.6-flash"]
+        self.candidate_models = ["gemini-2.0-flash", self.primary_model, "gemini-2.5-flash"]
 
     def _get_client(self):
         # Refresh API key if it was updated in environment dynamically
